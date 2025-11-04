@@ -26,11 +26,7 @@ jobs:
       - name: 🧩 Build sprite.svg
         run: node build-sprite.js
 
-      - name: 🗜️ Compress (optional)
-        run: |
-          sudo apt-get install -y brotli
-          brotli -q11 sprite.svg
-          gzip -9 sprite.svg
+      
 
       - name: 📤 Upload artifact
         uses: actions/upload-artifact@v4
