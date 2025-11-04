@@ -1,65 +1,94 @@
-/**
- * build-sprite.js
- * Combines all SVGs from ./emojis → sprite.svg
- * (No re-optimization, just clean + combine)
- */
-
 const fs = require('fs');
 const path = require('path');
 
 // Configuration
-const INPUT_FOLDER = './sprite';
-const OUTPUT_FILE = './sprite.svg';
+const inputDir = './sprite'; // Your emoji directory
+const outputFile = './sprite.svg';
 
-console.log('🚀 Starting SVG Sprite Builder...');
-console.log('📂 Reading from:', INPUT_FOLDER);
+// Read all SVG files
+const svgFiles = fs.readdirSync(inputDir).filter(file => file.endsWith('.svg'));
 
-// Recursively get all SVGs
-function getAllSvgFiles(dir) {
-  return fs.readdirSync(dir).flatMap(file => {
-    const fullPath = path.join(dir, file);
-    const stat = fs.statSync(fullPath);
-    if (stat.isDirectory()) return getAllSvgFiles(fullPath);
-    if (file.toLowerCase().endsWith('.svg')) return [fullPath];
-    return [];
-  });
-}
+console.log(`Found ${svgFiles.length} SVG files`);
 
-const files = getAllSvgFiles(INPUT_FOLDER);
-console.log(`✅ Found ${files.length} SVG files`);
+// Start building the sprite
+let spriteContent = `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" style="display: none;">
+<defs>
+`;
 
-if (files.length === 0) {
-  console.error('❌ No SVG files found!');
-  process.exit(1);
-}
-
-let symbols = [];
-
-for (const filePath of files) {
-  const fileName = path.basename(filePath, '.svg');
-  const svgData = fs.readFileSync(filePath, 'utf8');
-
-  // Extract the content inside <svg>...</svg>
-  const inner = svgData
-    .replace(/^[\s\S]*?<svg[^>]*>/i, '') // remove opening <svg>
-    .replace(/<\/svg>[\s\S]*$/i, '')     // remove closing </svg>
+// Process each SVG file
+svgFiles.forEach((file, index) => {
+  const filePath = path.join(inputDir, file);
+  const svgContent = fs.readFileSync(filePath, 'utf8');
+  
+  // Extract the emoji name (without .svg extension)
+  const emojiId = path.basename(file, '.svg');
+  
+  // Parse SVG content to extract inner content
+  // Remove <?xml...?>, <svg...>, and </svg> tags but keep inner content
+  let innerContent = svgContent
+    .replace(/<\?xml[^>]*\?>/g, '')
+    .replace(/<svg[^>]*>/g, '')
+    .replace(/<\/svg>/g, '')
     .trim();
+  
+  // Extract viewBox from original SVG if it exists
+  const viewBoxMatch = svgContent.match(/viewBox=["']([^"']+)["']/);
+  const viewBox = viewBoxMatch ? viewBoxMatch[1] : '0 0 128 128';
+  
+  // Create symbol element
+  spriteContent += `  <symbol id="${emojiId}" viewBox="${viewBox}">
+${innerContent}
+  </symbol>
+`;
+  
+  // Progress indicator
+  if ((index + 1) % 500 === 0) {
+    console.log(`Processed ${index + 1} files...`);
+  }
+});
 
-  // Add <symbol> for each emoji
-  symbols.push(`<symbol id="${fileName}" viewBox="0 0 72 72">${inner}</symbol>`);
-}
-
-console.log(`🧩 Combining ${symbols.length} SVGs into one sprite...`);
-
-const sprite = `<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg">
-  <defs>
-${symbols.join('\n')}
-  </defs>
+// Close the sprite
+spriteContent += `</defs>
 </svg>`;
 
-fs.writeFileSync(OUTPUT_FILE, sprite, 'utf8');
+// Write the sprite file
+fs.writeFileSync(outputFile, spriteContent, 'utf8');
 
-console.log(`✅ Done! Created ${OUTPUT_FILE} with ${symbols.length} emojis`);
-const sizeMB = (fs.statSync(OUTPUT_FILE).size / 1024 / 1024).toFixed(2);
-console.log(`📦 File size: ${sizeMB} MB`);
+console.log(`✅ Sprite created successfully: ${outputFile}`);
+console.log(`Total emojis: ${svgFiles.length}`);
+console.log(`File size: ${(fs.statSync(outputFile).size / 1024 / 1024).toFixed(2)} MB`);
+
+// Generate a usage example HTML
+const exampleHtml = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Emoji Sprite Demo</title>
+  <style>
+    .emoji {
+      width: 64px;
+      height: 64px;
+      display: inline-block;
+    }
+  </style>
+</head>
+<body>
+  <!-- Load the sprite (hidden) -->
+  <div style="display: none;">
+    <!-- Inline the sprite or use object tag -->
+  </div>
+  
+  <!-- Use emojis like this: -->
+  <svg class="emoji">
+    <use href="sprite.svg#emoji_u1f600"></use>
+  </svg>
+  
+  <svg class="emoji">
+    <use href="sprite.svg#emoji_u1f44d"></use>
+  </svg>
+</body>
+</html>`;
+
+fs.writeFileSync('./example.html', exampleHtml);
+console.log('📄 Example HTML created: example.html');
