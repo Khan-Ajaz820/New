@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 
 // Configuration
-const INPUT_FOLDER = './emojis';  // Folder containing your 3500 SVG files
+const INPUT_FOLDER = './sprite';  // Folder containing your 3500 SVG files
 const OUTPUT_FILE = './sprite.svg'; // Output sprite file
 
 console.log('🚀 Starting SVG Sprite Builder...\n');
