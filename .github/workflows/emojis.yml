@@ -1,38 +1,31 @@
-name: 🧩 Build SVG Sprite
+name: Build Emoji Sprite
 
 on:
   push:
-    branches: [ main ]   # or "master" — update if needed
-  workflow_dispatch:      # allows manual trigger
+    branches: [ main ]
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
-      # 1️⃣ Checkout your repo
-      - name: 📥 Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          lfs: true
 
-      # 2️⃣ Setup Node.js
-      - name: 🧱 Setup Node.js
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: '20'   # Node 20+ recommended
+          node-version: 20
 
-      # 3️⃣ Install dependencies (if you have any)
-      - name: 📦 Install dependencies
-        run: npm install
+      - name: Build sprite.svg
+        run: |
+          node build-sprite.js
+          grep -c "<symbol" sprite.svg
 
-      # 4️⃣ Run your sprite builder
-      - name: 🧩 Build SVG Sprite
-        run: npm run build
-
-      # 5️⃣ Upload sprite as artifact (for download)
-      - name: 📤 Upload sprite.svg artifact
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: sprite-svg
+          name: sprite
           path: sprite.svg
-
-      
